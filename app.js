@@ -28,6 +28,7 @@ app.use(bodyParser.urlencoded({extended:true}));
 app.use(passport.initialize());
 app.use(passport.session());
 
+passport.use (new LocalStrategy (User.authenticate ()));
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
@@ -39,7 +40,7 @@ app.get("/", function(req, res){
 	res.render("home");
 });
 
-app.get("/secret", function(req, res){
+app.get("/secret", isLoggedIn, function(req, res){
 	res.render("secret");
 });
 
@@ -55,12 +56,12 @@ app.post("/register", function(req, res){
 	User.register(new User({username: req.body.username}), req.body.password, function(err, user){
 		if(err){
 			console.log(err);
-			return res.redirect('register');
-			}else{
+			return res.render('register');
+			}
 				passport.authenticate("local")(req, res, function(){
 					res.redirect('/secret');
 				});
-			}
+			
 		}
 	);
 });
@@ -72,13 +73,26 @@ app.get("/login", function(req, res){
 });
 //LOGIN LOGIC
 // middleware
-app.port('/login', passport.authenticate("local"), {
+app.post('/login', passport.authenticate("local",{
 	successRedirect: "/secret",
-	failureRedurect: "/login"
-}, function(req, res){
+	failureRedirect: "/login"
+}), function(req, res){
 
 });
 
+function isLoggedIn(req, res, next){
+	if(req.isAuthenticated()){
+		return next();
+	}
+	res.redirect('/login');
+}
+
+
+//LOGOUT ROUTE
+app.get('/logout', function(req, res){
+	req.logout();
+	res.redirect('/');
+});
 
 app.listen(3000, function(){
 	console.log("server running");
